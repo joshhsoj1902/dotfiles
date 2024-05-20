@@ -57,7 +57,7 @@ ZSH_THEME="dave"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
-# ZSH_CUSTOM=$HOME/.zsh/custom
+ZSH_CUSTOM=$HOME/.zsh/custom
 
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
@@ -151,7 +151,7 @@ zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 
 
-source ~/.zsh/powerlevel10k/powerlevel10k.zsh-theme
+source ~/.zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 

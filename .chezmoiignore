@@ -1,9 +1,7 @@
 README.md
 LICENSE
 install.sh
-dot_oh-my-zsh/.git
-dot_zsh/powerlevel10k/.git
-dot_zsh/custom/plugins/zsh-syntax-highlighting/.git
+.oh-my-zsh/cache/
 {{- if (and (eq .chezmoi.os "linux") (not .kubernetes)) }}
 .kube/config
 .config/k9s/
