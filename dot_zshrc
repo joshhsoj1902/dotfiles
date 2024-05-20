@@ -57,7 +57,7 @@ ZSH_THEME="dave"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
-ZSH_CUSTOM=$HOME/.zsh/custom
+# ZSH_CUSTOM=$HOME/.zsh/custom
 
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
@@ -65,19 +65,22 @@ ZSH_CUSTOM=$HOME/.zsh/custom
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-  git docker docker-compose kubectl debian github colored-man-pages zsh-syntax-highlighting zsh-autosuggestions
+  git docker docker-compose kubectl debian github colored-man-pages zsh-autosuggestions
+)
+
+# zsh-syntax-highlighting needs to be the last plugin loaded
+plugins+=(
+zsh-syntax-highlighting
 )
 
 # Auto complete
 autoload -Uz compinit && compinit -i
-
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
 export EDITOR='vim'
-
 
 # export MANPATH="/usr/local/man:$MANPATH"
 
@@ -95,7 +98,7 @@ export EDITOR='vim'
 # export ARCHFLAGS="-arch x86_64"
 
 # ssh
-export SSH_KEY_PATH="~/.ssh/rsa_id"
+# export SSH_KEY_PATH="~/.ssh/rsa_id"
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
@@ -149,8 +152,6 @@ zstyle :bracketed-paste-magic paste-finish pastefinish
 
 
 source ~/.zsh/powerlevel10k/powerlevel10k.zsh-theme
-
-
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
