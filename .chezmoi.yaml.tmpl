@@ -1,0 +1,24 @@
+{{- /* Checks if running interactively */ -}}
+{{- $interactive := stdinIsATTY -}}
+
+{{- /* Template file for chezmoi config file */ -}}
+{{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
+{{- $kubernetes := false -}}{{/* true if this machine is used for Kubernetes work */}}
+
+{{- $hostname := .chezmoi.hostname -}}
+{{- if eq $hostname "MrFrame" -}}
+{{-   $headless = false -}}
+{{-   $kubernetes = false -}}
+{{- end -}}
+
+{{- if $interactive -}}
+{{-   writeToStdout "💡 Tip: you can re-enter your data with `chezmoi init --data=false`.\n" -}}
+{{- end -}}
+
+data:
+  headless: {{ $headless }}
+  kubernetes: {{ $kubernetes }}
+format: yaml
+sourceDir: /home/josh/dotfiles
+git:
+  autoAdd: true
