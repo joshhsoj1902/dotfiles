@@ -1,0 +1,207 @@
+{
+  "git.confirmSync": false,
+  "git.autofetch": true,
+  // "terminal.integrated.shell.osx": "/bin/zsh",
+  "files.trimTrailingWhitespace": true,
+  "files.autoSave": "onFocusChange",
+  "search.exclude": {
+    "**/bower_components": true,
+    "**/node_modules": true,
+    "**/vendors": true
+  },
+  "terminal.integrated.rendererType": "dom",
+  // "gitlens.advanced.messages": {
+  //   "suppressShowKeyBindingsNotice": true
+  // },
+  "vs-kubernetes": {
+    "vs-kubernetes.helm-path": "/Users/bkm/.vs-kubernetes/tools/helm/darwin-amd64/helm",
+    "vs-kubernetes.draft-path": "/Users/bkm/.vs-kubernetes/tools/draft/darwin-amd64/draft",
+    "vs-kubernetes.kubectl-path": "/Users/bkm/.vs-kubernetes/tools/kubectl/kubectl",
+    "vs-kubernetes.minikube-path": "/Users/bkm/.vs-kubernetes/tools/minikube/darwin-amd64/minikube"
+  },
+  "cSpell.userWords": [
+    "appsv",
+    "ARTIFACTORY",
+    "brojometrics",
+    "buildx",
+    "cenkalti",
+    "configmaps",
+    "corev",
+    "enginesv",
+    "eval",
+    "finalizers",
+    "Getkube",
+    "gocyclo",
+    "gomplate",
+    "gosec",
+    "GRPC",
+    "Hnxg",
+    "jfrog",
+    "journalctl",
+    "JWKS",
+    "Kube",
+    "kubectl",
+    "Kubernetes",
+    "metav",
+    "minikube",
+    "mkdir",
+    "nats",
+    "nginx",
+    "nolint",
+    "nosec",
+    "qixengine",
+    "qixengineclientv",
+    "qixenginev",
+    "qlik",
+    "qliksense",
+    "qliktech",
+    "REPO",
+    "sclient",
+    "scontroller",
+    "serrors",
+    "sigs",
+    "tolerations",
+    "Untar"
+  ],
+  "go.coverOnSingleTest": true,
+  "cSpell.allowCompoundWords": true,
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
+  ],
+  "go.testFlags": [
+    "-v",
+    "-race"
+  ],
+  "go.autocompleteUnimportedPackages": true,
+  "go.inferGopath": true,
+  "gitlens.gitCommands.skipConfirmations": [
+    "fetch:command",
+    "stash-push:command",
+    "switch:command",
+    "stash-apply:command"
+  ],
+  "go.formatTool": "goimports",
+  "go.useLanguageServer": true,
+  "vsicons.dontShowNewVersionMessage": true,
+  "window.title": "${rootName}${separator}${dirty}${activeEditorShort}${separator}${appName}",
+  "workbench.editor.limit.enabled": true,
+  "terminal.integrated.copyOnSelection": true,
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "go.toolsManagement.autoUpdate": true,
+  "editor.inlineSuggest.enabled": true,
+  "workbench.editorAssociations": {
+    "*.ipynb": "jupyter.notebook.ipynb"
+  },
+  "github.copilot.enable": {
+    "*": true,
+    "yaml": false,
+    "plaintext": true,
+    "markdown": true
+  },
+  "redhat.telemetry.enabled": false,
+  "[python]": {
+    "editor.formatOnType": true
+  },
+  "go.coverOnSingleTestFile": true,
+  "go.disableConcurrentTests": true,
+  "terminal.integrated.profiles.osx": {
+
+    "zsh": {
+      "path": "zsh",
+      "args": [
+        "-l"
+      ]
+    },
+    "bash": {
+      "path": "bash",
+      "args": [
+        "-l"
+      ],
+      "icon": "terminal-bash"
+    },
+    "fish": {
+      "path": "fish",
+      "args": [
+        "-l"
+      ]
+    },
+    "tmux": {
+      "path": "tmux",
+      "icon": "terminal-tmux"
+    },
+    "pwsh": {
+      "path": "pwsh",
+      "icon": "terminal-powershell"
+    }
+  },
+  "[go]": {
+    "editor.insertSpaces": false,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "editor.suggest.snippetsPreventQuickSuggestions": false
+  },
+  "remote.SSH.remotePlatform": {
+    "192.168.50.125": "linux"
+  },
+  "files.eol": "\n",
+  "terminal.integrated.persistentSessionScrollback": 1000,
+  "terminal.integrated.scrollback": 10000,
+  "go.buildTags": "test_e2e",
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "peacock.favoriteColors": [
+    {
+      "name": "Machine-Provisioner Red",
+      "value": "#6e0915"
+    },
+    {
+      "name": "Docker-Provisioner Blue",
+      "value": "#06e0915"
+    },
+    {
+      "name": "Execution-Gateway Blue",
+      "value": "#7f3065"
+    },
+    {
+      "name": "Feature-Flags Yellow",
+      "value": "#867607"
+    },
+    {
+      "name": "Output",
+      "value": "#8549ba"
+    },
+    {
+      "name": "Infra Cyan",
+      "value": "#004e44"
+    },
+    {
+      "name": "Library Purple",
+      "value": "#5f3074"
+    },
+    {
+      "name": "Nomad Green",
+      "value:": "#004110"
+    },
+    {
+      "name": "Build-Agent Orange",
+      "value:": "#783508"
+    },
+  ],
+  "peacock.affectTabActiveBorder": true,
+  "window.nativeTabs": true,
+  "window.zoomLevel": -2,
+  "editor.inlineSuggest.suppressSuggestions": true,
+  "cody.customHeaders": {
+
+  },
+  "terminal.integrated.fontFamily": "MesloLGS NF",
+  "settingsSync.ignoredSettings": [
+
+  ],
+}

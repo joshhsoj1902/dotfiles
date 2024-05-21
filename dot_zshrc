@@ -5,11 +5,54 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# source <(doctl completion zsh)
-# source ~/dev/zsh-config/default.zshrc
 
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+# convenience functions to insert/append to the path, while not polluting it with
+# nonexistant paths on systems where they don't exist
+# source https://github.com/hairyhenderson/dotfiles/blob/master/zshrc
+function pathinsert () {
+  if [[ -d $1 ]]; then
+    export PATH="$1:$PATH"
+  fi
+}
+function pathappend () {
+  if [[ -d $1 ]]; then
+    export PATH="$PATH:$1"
+  fi
+}
+
+if [ -x "/usr/libexec/path_helper" ]; then
+  eval "$(/usr/libexec/path_helper)"
+else
+  export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+fi
+
+if [ -x /opt/homebrew/bin/brew ]; then
+  export HOMEBREW_PREFIX=/opt/homebrew
+elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+  export HOMEBREW_PREFIX=/home/linuxbrew/.linuxbrew
+else
+  export HOMEBREW_PREFIX=$(brew config 2>/dev/null | grep ^HOMEBREW_PREFIX | cut -f2 -d\ )
+fi
+
+pathappend "$HOME/.rvm/bin"
+pathinsert "$HOMEBREW_PREFIX/bin"
+pathinsert "$HOMEBREW_PREFIX/sbin"
+pathappend "$HOMEBREW_PREFIX/opt/go/libexec/bin"
+pathappend "/usr/local/go/libexec/bin"
+pathinsert "$HOME/.local/bin"
+pathinsert "$HOME/bin"
+pathinsert "$HOMEBREW_PREFIX/opt/python/libexec/bin"
+pathinsert "$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin"
+pathinsert "$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin"
+pathinsert "$HOMEBREW_PREFIX/opt/gettext/bin"
+pathinsert "/usr/local/go/bin"
+pathinsert "$HOME/bin/docker"
+pathinsert "$HOME/bin/packer"
+pathinsert "$HOME/bin/terraform"
+pathinsert "$HOME/bin/google-cloud-sdk/bin"
+pathinsert "$GOPATH/bin"
+
+
 
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
@@ -19,36 +62,8 @@ export ZSH=$HOME/.oh-my-zsh
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
 ZSH_THEME="dave"
 
-# Set list of themes to load
-# Setting this variable when ZSH_THEME=random
-# cause zsh load theme from this variable instead of
-# looking in ~/.oh-my-zsh/themes/
-# An empty array have no effect
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion. Case
-# sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
 # Uncomment the following line to display red dots whilst waiting for completion.
 # COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
 
 # Uncomment the following line if you want to change the command execution time
 # stamp shown in the history command output.
@@ -62,7 +77,6 @@ ZSH_CUSTOM=$HOME/.zsh/custom
 
 # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   apt git docker docker-compose alias-tips debian github colored-man-pages zsh-autosuggestions
@@ -84,23 +98,12 @@ source $ZSH/oh-my-zsh.sh
 
 export EDITOR='vim'
 
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
 #export EDITOR='vim'
 # else
 #   export EDITOR='mvim'
 # fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# ssh
-# export SSH_KEY_PATH="~/.ssh/rsa_id"
 
 # Set personal aliases, overriding those provided by oh-my-zsh libs,
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
