@@ -1,0 +1,15 @@
+[user]
+	email = josh.bryans@circleci.com
+	name = Josh Bryans
+[commit]
+	gpgsign = true
+[core]
+	excludesFile = ~/.gitignore
+[url "ssh://git@github.com"]
+	insteadOf = https://github.com
+[gc]
+	auto = 0
+[push]
+	autoSetupRemote = true
+[init]
+	defaultBranch = master
