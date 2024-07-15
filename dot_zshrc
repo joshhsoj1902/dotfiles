@@ -153,7 +153,17 @@ zstyle :bracketed-paste-magic paste-finish pastefinish
 
 source ~/.zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
 
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+OS="$(uname)"
+if [[ "${OS}" == "Linux" ]]
+then
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [[ "${OS}" == "Darwin" ]]
+then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+else
+  abort "Homebrew is only supported on macOS and Linux."
+fi
+
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
