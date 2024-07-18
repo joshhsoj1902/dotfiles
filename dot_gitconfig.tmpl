@@ -1,0 +1,29 @@
+[user]
+{{- if .work }}
+	email = {{ onepasswordRead "op://private/chezmoi_work/email" }}
+	name = {{ onepasswordRead "op://private/chezmoi_work/name" }}
+{{- else if .personal }}
+	email = {{ onepasswordRead "op://private/chezmoi_personal/email" }}
+	name = {{ onepasswordRead "op://private/chezmoi_personal/name" }}
+{{- end }}
+	signingkey = {{ onepasswordRead "op://private/SSH Git Signing Key/public key" }}
+[commit]
+	gpgsign = true
+[core]
+	excludesFile = ~/.gitignore
+[url "ssh://git@github.com"]
+	insteadOf = https://github.com
+[gc]
+	auto = 0
+[push]
+	autoSetupRemote = true
+[init]
+	defaultBranch = master
+[gpg]
+	format = ssh
+[gpg "ssh"]
+{{- if .work }}
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+{{- else if .personal }}
+	program = /opt/1Password/op-ssh-sign
+{{- end }}

@@ -3,12 +3,14 @@
 
 {{- /* Template file for chezmoi config file */ -}}
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
-{{- $kubernetes := false -}}{{/* true if this machine is used for Kubernetes work */}}
+{{- $work := false -}}{{/* true if this is a work machine */}}
+{{- $personal := false -}}{{/* true if this is a personal machine */}}
 
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "MrFrame" -}}
-{{-   $headless = false -}}
-{{-   $kubernetes = false -}}
+{{-   $personal = true -}}
+{{- else if eq $hostname "Joshs-MacBook-Pro" -}}
+{{-   $work = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
@@ -17,8 +19,11 @@
 
 data:
   headless: {{ $headless }}
-  kubernetes: {{ $kubernetes }}
+  work: {{ $work }}
+  personal: {{ $personal }}
 format: yaml
 sourceDir: ~/dotfiles
 git:
   autoAdd: true
+diff:
+  exclude: ["externals"]
