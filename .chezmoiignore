@@ -3,7 +3,3 @@ LICENSE
 install.sh
 .oh-my-zsh/cache/
 .zsh/custom/themes/powerlevel10k
-{{- if (and (eq .chezmoi.os "linux") (not .kubernetes)) }}
-.kube/config
-.config/k9s/
-{{- end }}

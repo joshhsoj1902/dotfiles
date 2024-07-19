@@ -17,8 +17,15 @@
 	auto = 0
 [push]
 	autoSetupRemote = true
+	default = simple
 [init]
-	defaultBranch = master
+	defaultBranch = main
+{{- if .personal }}
+[commit]
+	gpgsign = true
+[credential]
+	helper = store
+{{- end }}
 [gpg]
 	format = ssh
 [gpg "ssh"]
