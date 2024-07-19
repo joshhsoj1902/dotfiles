@@ -2,11 +2,12 @@
 {{- if .work }}
 	email = {{ onepasswordRead "op://private/chezmoi_work/email" }}
 	name = {{ onepasswordRead "op://private/chezmoi_work/name" }}
+	signingkey = {{ onepasswordRead "op://private/SSH Git Signing Key/public key" }}
 {{- else if .personal }}
 	email = {{ onepasswordRead "op://private/chezmoi_personal/email" }}
 	name = {{ onepasswordRead "op://private/chezmoi_personal/name" }}
-{{- end }}
 	signingkey = {{ onepasswordRead "op://private/SSH Git Signing Key/public key" }}
+{{- end }}
 [commit]
 	gpgsign = true
 [core]
@@ -20,17 +21,18 @@
 	default = simple
 [init]
 	defaultBranch = main
-{{- if .personal }}
+{{- if .work }}
+[gpg]
+	format = ssh
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+{{- else if .personal }}
 [commit]
 	gpgsign = true
 [credential]
 	helper = store
-{{- end }}
 [gpg]
 	format = ssh
 [gpg "ssh"]
-{{- if .work }}
-	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
-{{- else if .personal }}
 	program = /opt/1Password/op-ssh-sign
 {{- end }}
