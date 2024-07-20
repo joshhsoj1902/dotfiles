@@ -5,12 +5,16 @@
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $work := false -}}{{/* true if this is a work machine */}}
 {{- $personal := false -}}{{/* true if this is a personal machine */}}
+{{- $server := false -}}{{/* true if this is a personal machine */}}
 
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "MrFrame" -}}
 {{-   $personal = true -}}
 {{- else if eq $hostname "Joshs-MacBook-Pro" -}}
 {{-   $work = true -}}
+{{- else if eq $hostname "piggygames" -}}
+{{-   $server = true -}}
+{{-   $headless = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
@@ -21,6 +25,7 @@ data:
   headless: {{ $headless }}
   work: {{ $work }}
   personal: {{ $personal }}
+  server: {{ $server }}
 format: yaml
 sourceDir: ~/dotfiles
 git:
