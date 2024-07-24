@@ -2,8 +2,8 @@
 
 set -e # -e: exit on error
 
+bin_dir="$HOME/.local/bin"
 if [ ! "$(command -v chezmoi)" ]; then
-  bin_dir="/usr/local/bin"
   if [ "$(command -v curl)" ]; then
     sh -c "$(curl -fsSL https://git.io/chezmoi)" -- -b "$bin_dir"
   elif [ "$(command -v wget)" ]; then
@@ -14,4 +14,10 @@ if [ ! "$(command -v chezmoi)" ]; then
   fi
 fi
 
-chezmoi init --config-path ~/dotfiles
+echo "NOTE"
+echo "Use $bin_dir/chezmoi until the config has been applied"
+echo ""
+
+$bin_dir/chezmoi init --source $HOME/dotfiles
+
+echo "Done, diff & apply can now be ran"
