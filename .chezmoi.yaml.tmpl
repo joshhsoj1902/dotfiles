@@ -5,7 +5,8 @@
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $work := false -}}{{/* true if this is a work machine */}}
 {{- $personal := false -}}{{/* true if this is a personal machine */}}
-{{- $server := false -}}{{/* true if this is a personal machine */}}
+{{- $server := false -}}{{/* true if this is a server */}}
+{{- $gameserver := false -}}{{/* true if this is a server hosting gameservers */}}
 
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "MrFrame" -}}
@@ -15,9 +16,11 @@
 {{- else if eq $hostname "piggygames" -}}
 {{-   $server = true -}}
 {{-   $headless = true -}}
+{{-   $gameserver = true -}}
 {{- else if eq $hostname "prox-games" -}}
 {{-   $server = true -}}
 {{-   $headless = true -}}
+{{-   $gameserver = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
@@ -29,6 +32,7 @@ data:
   work: {{ $work }}
   personal: {{ $personal }}
   server: {{ $server }}
+  gameserver: {{ $gameserver }}
 format: yaml
 sourceDir: ~/dotfiles
 git:

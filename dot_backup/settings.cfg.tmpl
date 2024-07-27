@@ -23,3 +23,7 @@ BACKUP_TOOL=7z
 
 # # Monthly creates a a montly backup and updates it the first day of each month
 # BACKUP_MONTHLY=true
+
+{{- if .gameserver }}
+BACKUP_GAME_SERVERS=true
+{{- end }}
