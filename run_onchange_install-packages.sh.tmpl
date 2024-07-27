@@ -4,3 +4,7 @@ sudo apt install htop
 {{ else if eq .chezmoi.os "darwin" -}}
 brew install htop
 {{ end -}}
+
+{{ if .server -}}
+sudo apt install -y nfs-common p7zip-full p7zip-rar
+{{ end -}}
