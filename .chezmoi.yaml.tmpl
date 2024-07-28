@@ -5,12 +5,30 @@
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $work := false -}}{{/* true if this is a work machine */}}
 {{- $personal := false -}}{{/* true if this is a personal machine */}}
+{{- $server := false -}}{{/* true if this is a server */}}
+{{- $gameserver := false -}}{{/* true if this is a server hosting gameservers */}}
+{{- $docker := false -}}{{/* true if this is a server should install docker */}}
+{{- $rpi := false -}}{{/* true if this is a server is a pi */}}
 
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "MrFrame" -}}
 {{-   $personal = true -}}
 {{- else if eq $hostname "Joshs-MacBook-Pro" -}}
 {{-   $work = true -}}
+{{- else if eq $hostname "piggygames" -}}
+{{-   $server = true -}}
+{{-   $headless = true -}}
+{{-   $gameserver = true -}}
+{{-   $docker = true -}}
+{{- else if eq $hostname "prox-games" -}}
+{{-   $server = true -}}
+{{-   $headless = true -}}
+{{-   $gameserver = true -}}
+{{-   $docker = true -}}
+{{- else if eq $hostname "pihole-secondary" -}}
+{{-   $server = true -}}
+{{-   $headless = true -}}
+{{-   $rpi = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
@@ -21,6 +39,10 @@ data:
   headless: {{ $headless }}
   work: {{ $work }}
   personal: {{ $personal }}
+  server: {{ $server }}
+  gameserver: {{ $gameserver }}
+  docker: {{ $docker }}
+  rpi: {{ $rpi }}
 format: yaml
 sourceDir: ~/dotfiles
 git:
