@@ -21,7 +21,7 @@
 {{-   $server = true -}}
 {{-   $headless = true -}}
 {{-   $gameserver = true -}}
-{{- else if contains $hostname "pihole" -}}
+{{- else if eq $hostname "pihole-secondary" -}}
 {{-   $server = true -}}
 {{-   $headless = true -}}
 {{- end -}}
