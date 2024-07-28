@@ -8,6 +8,7 @@
 {{- $server := false -}}{{/* true if this is a server */}}
 {{- $gameserver := false -}}{{/* true if this is a server hosting gameservers */}}
 {{- $docker := false -}}{{/* true if this is a server should install docker */}}
+{{- $rpi := false -}}{{/* true if this is a server is a pi */}}
 
 {{- $hostname := .chezmoi.hostname -}}
 {{- if eq $hostname "MrFrame" -}}
@@ -27,6 +28,7 @@
 {{- else if eq $hostname "pihole-secondary" -}}
 {{-   $server = true -}}
 {{-   $headless = true -}}
+{{-   $rpi = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
@@ -40,6 +42,7 @@ data:
   server: {{ $server }}
   gameserver: {{ $gameserver }}
   docker: {{ $docker }}
+  rpi: {{ $rpi }}
 format: yaml
 sourceDir: ~/dotfiles
 git:

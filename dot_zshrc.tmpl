@@ -155,9 +155,11 @@ pastefinish() {
 zstyle :bracketed-paste-magic paste-init pasteinit
 zstyle :bracketed-paste-magic paste-finish pastefinish
 
-
+{{- if not .server }}
 source ~/.zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+{{- end }}
 
+{{- if not .rpi }}
 # Init brew
 OS="$(uname)"
 if [[ "${OS}" == "Linux" ]]
@@ -169,6 +171,7 @@ then
 else
   abort "Homebrew is only supported on macOS and Linux."
 fi
+{{- end }}
 
 # Init NVM if it's installed.
 if [ -d "$HOME/.nvm" ]; then
