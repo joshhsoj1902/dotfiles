@@ -21,6 +21,9 @@
 {{-   $server = true -}}
 {{-   $headless = true -}}
 {{-   $gameserver = true -}}
+{{- else if contains $hostname "pihole" -}}
+{{-   $server = true -}}
+{{-   $headless = true -}}
 {{- end -}}
 
 {{- if $interactive -}}
