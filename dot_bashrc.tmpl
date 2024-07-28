@@ -116,4 +116,6 @@ if ! shopt -oq posix; then
   fi
 fi
 
+{{- if not .rpi }}
 bash -c zsh
+{{- end }}
