@@ -1,3 +1,7 @@
+# ~/.zshrc: Main zsh configuration file
+# This file is managed by chezmoi and sources modular configuration files
+# from ~/.zsh/custom/ for better organization and maintainability
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -5,180 +9,89 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-
-# convenience functions to insert/append to the path, while not polluting it with
-# nonexistant paths on systems where they don't exist
-# source https://github.com/hairyhenderson/dotfiles/blob/master/zshrc
+# Convenience functions to insert/append to the path, while not polluting it with
+# nonexistent paths on systems where they don't exist
+# Source: https://github.com/hairyhenderson/dotfiles/blob/master/zshrc
 function pathinsert () {
   if [[ -d $1 ]]; then
     export PATH="$1:$PATH"
   fi
 }
+
 function pathappend () {
   if [[ -d $1 ]]; then
     export PATH="$PATH:$1"
   fi
 }
 
+# Initialize basic PATH
 if [ -x "/usr/libexec/path_helper" ]; then
   eval "$(/usr/libexec/path_helper)"
 else
   export PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 fi
 
+# Determine Homebrew prefix (needed for path management)
 if [ -x /opt/homebrew/bin/brew ]; then
   export HOMEBREW_PREFIX=/opt/homebrew
 elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
   export HOMEBREW_PREFIX=/home/linuxbrew/.linuxbrew
 else
-  export HOMEBREW_PREFIX=$(brew config 2>/dev/null | grep ^HOMEBREW_PREFIX | cut -f2 -d\ )
+  # Only try brew config if brew is in PATH (skip if not available to avoid hanging)
+  if command -v brew &> /dev/null && [ -x "$(command -v brew)" ]; then
+    export HOMEBREW_PREFIX=$(brew config 2>/dev/null | grep ^HOMEBREW_PREFIX | cut -f2 -d\ 2>/dev/null || echo "")
+  fi
 fi
 
-pathappend "$HOME/.rvm/bin"
-pathinsert "$HOMEBREW_PREFIX/bin"
-pathinsert "$HOMEBREW_PREFIX/sbin"
-pathappend "$HOMEBREW_PREFIX/opt/go/libexec/bin"
-pathappend "/usr/local/go/libexec/bin"
-pathinsert "$HOME/.local/bin"
-pathinsert "$HOME/bin"
-pathinsert "$HOMEBREW_PREFIX/opt/python/libexec/bin"
-pathinsert "$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin"
-pathinsert "$HOMEBREW_PREFIX/opt/gnu-sed/libexec/gnubin"
-pathinsert "$HOMEBREW_PREFIX/opt/gettext/bin"
-pathinsert "/usr/local/go/bin"
-pathinsert "$HOME/bin/docker"
-pathinsert "$HOME/bin/packer"
-pathinsert "$HOME/bin/terraform"
-pathinsert "$HOME/bin/google-cloud-sdk/bin"
-pathinsert "$GOPATH/bin"
+# Source modular configuration files
+# Order matters: paths first, then oh-my-zsh, then tools and functions
+# Note: Files are in ~/.zsh/custom/config/ to avoid oh-my-zsh auto-sourcing them
 
-
-
-# Path to your oh-my-zsh installation.
-export ZSH=$HOME/.oh-my-zsh
-
-# Set name of the theme to load. Optionally, if you set this to "random"
-# it'll load a random theme each time that oh-my-zsh is loaded.
-# See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
-ZSH_THEME="dave"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# The optional three formats: "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-ZSH_CUSTOM=$HOME/.zsh/custom
-
-
-# Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
-# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-  apt git docker docker-compose alias-tips debian github colored-man-pages zsh-autosuggestions
-)
-
-# zsh-syntax-highlighting needs to be the last plugin loaded
-plugins+=(
-zsh-syntax-highlighting
-)
-
-fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
-
-# Auto complete
-autoload -Uz compinit && compinit -i
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-export EDITOR='vim'
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-
-
-if [[ $(command -v helm) ]]; then
-  # Fix for autocomplete from https://github.com/helm/helm/issues/5046#issuecomment-463576351
-  source <(helm completion zsh | sed -E 's/\["(.+)"\]/\[\1\]/g')
+# Path management (must be sourced early as other modules may depend on paths)
+if [[ -f ~/.zsh/custom/config/paths.zsh ]]; then
+  source ~/.zsh/custom/config/paths.zsh
 fi
 
-if [[ $(command -v az) && -f "/usr/local/etc/bash_completion.d/az" ]]; then
-  source /usr/local/etc/bash_completion.d/az
+# Oh My Zsh configuration
+if [[ -f ~/.zsh/custom/config/oh-my-zsh-config.zsh ]]; then
+  source ~/.zsh/custom/config/oh-my-zsh-config.zsh
 fi
 
-if [[ $(command -v kubectl) ]]; then
-  source <(kubectl completion zsh)
+# Tool completions (helm, kubectl, az, etc.)
+if [[ -f ~/.zsh/custom/config/tools.zsh ]]; then
+  source ~/.zsh/custom/config/tools.zsh
 fi
 
-if [[ -d "/usr/local/share/zsh-completions" ]]; then
-  fpath=(/usr/local/share/zsh-completions $fpath)
+# Custom functions
+if [[ -f ~/.zsh/custom/config/functions.zsh ]]; then
+  source ~/.zsh/custom/config/functions.zsh
 fi
 
-if [[ -d "/usr/local/share/zsh-syntax-highlighting" ]]; then
-  source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+# Aliases
+if [[ -f ~/.zsh/custom/config/aliases.zsh ]]; then
+  source ~/.zsh/custom/config/aliases.zsh
 fi
 
-# Allow watch command to support alias expansion (e.g. watch ll)
-if [[ $(command -v watch) ]]; then
-  alias watch='watch '
+# Secrets (template file - may not exist on all systems)
+if [[ -f ~/.zsh/custom/config/secrets.zsh ]]; then
+  source ~/.zsh/custom/config/secrets.zsh
 fi
 
-# Fix slowness of pastes with zsh-syntax-highlighting.zsh
-# From https://gist.github.com/magicdude4eva/2d4748f8ef3e6bf7b1591964c201c1ab
-pasteinit() {
-  OLD_SELF_INSERT=${${(s.:.)widgets[self-insert]}[2,3]}
-  zle -N self-insert url-quote-magic
-}
-
-pastefinish() {
-  zle -N self-insert $OLD_SELF_INSERT
-}
-zstyle :bracketed-paste-magic paste-init pasteinit
-zstyle :bracketed-paste-magic paste-finish pastefinish
-
+# Powerlevel10k theme (conditional - only on non-server systems)
 {{- if not .server }}
-source ~/.zsh/custom/themes/powerlevel10k/powerlevel10k.zsh-theme
+if [[ -f ~/.zsh/custom/config/powerlevel10k.zsh ]]; then
+  source ~/.zsh/custom/config/powerlevel10k.zsh
+fi
 {{- end }}
 
+# Homebrew initialization (conditional - only on non-RPI systems)
 {{- if not .rpi }}
-# Init brew
-OS="$(uname)"
-if [[ "${OS}" == "Linux" ]]
-then
-  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-elif [[ "${OS}" == "Darwin" ]]
-then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-else
-  abort "Homebrew is only supported on macOS and Linux."
+if [[ -f ~/.zsh/custom/config/brew.zsh ]]; then
+  source ~/.zsh/custom/config/brew.zsh
 fi
 {{- end }}
 
-# Init NVM if it's installed.
-if [ -d "$HOME/.nvm" ]; then
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# NVM initialization
+if [[ -f ~/.zsh/custom/config/nvm.zsh ]]; then
+  source ~/.zsh/custom/config/nvm.zsh
 fi
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

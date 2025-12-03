@@ -14,10 +14,14 @@ function box_name {
 }
 
 function k8s_context {
-	if [ ! -z "command -v kubectl" ]; then
-		#local GEAR="⚙"
+	# Display current Kubernetes context in prompt
+	# Error suppression prevents hanging if kubectl is slow or unavailable
+	if command -v kubectl &> /dev/null; then
 		local GEAR="\u26F5"
-		echo -ne "$FG[239]${GEAR}$reset_color $FG[033]$(kubectl config current-context)$reset_color"
+		local context=$(kubectl config current-context 2>/dev/null || true)
+		if [[ -n "$context" ]]; then
+			echo -ne "$FG[239]${GEAR}$reset_color $FG[033]${context}$reset_color"
+		fi
 	fi
 }
 
@@ -26,7 +30,7 @@ local git_info='$(git_prompt_info)'
 local prompt_char='${ret_status}$(prompt_char)'
 local k8s_info='$(k8s_context)'
 
-PROMPT="%{$FG[239]%}╭─%{$reset_color%}%{$terminfo[bold]$FG[226]%}${current_dir}%{$reset_color%}${git_info} ${k8s_info}
+PROMPT="%{$FG[239]%}╭─%{$reset_color%}%{$terminfo[bold]$FG[226]%}${current_dir}%{$reset_color%}${git_info}${k8s_info}
 %{$FG[239]%}╰─${prompt_char}%{$reset_color%} "
 
 ZSH_THEME_GIT_PROMPT_PREFIX=" %{$FG[239]%}⎇%{$reset_color%} %{$fg[255]%}"

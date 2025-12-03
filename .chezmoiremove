@@ -1,0 +1,10 @@
+.zsh/custom/aliases.zsh
+.zsh/custom/brew.zsh
+.zsh/custom/environment.zsh
+.zsh/custom/functions.zsh
+.zsh/custom/nvm.zsh
+.zsh/custom/oh-my-zsh.zsh
+.zsh/custom/paths.zsh
+.zsh/custom/powerlevel10k.zsh
+.zsh/custom/tools.zsh
+

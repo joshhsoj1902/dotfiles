@@ -2,6 +2,10 @@
 
 set -e # -e: exit on error
 
+# Determine the directory where this script is located
+# This allows the script to work regardless of where it's run from
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 bin_dir="$HOME/.local/bin"
 if [ ! "$(command -v chezmoi)" ]; then
   if [ "$(command -v curl)" ]; then
@@ -14,10 +18,17 @@ if [ ! "$(command -v chezmoi)" ]; then
   fi
 fi
 
-echo "NOTE"
-echo "Use $bin_dir/chezmoi until the config has been applied"
+echo "NOTE: Use $bin_dir/chezmoi until the config has been applied"
 echo ""
 
-$bin_dir/chezmoi init --source $HOME/dotfiles
+# Initialize chezmoi with the config file in this repository
+# The config file (`.chezmoi.yaml.tmpl`) defines the source directory
+$bin_dir/chezmoi init --config-path "$SCRIPT_DIR"
 
-echo "Done, diff & apply can now be ran"
+echo ""
+echo "Initialization complete!"
+echo ""
+echo "Next steps:"
+echo "  1. Review changes:  $bin_dir/chezmoi diff"
+echo "  2. Apply changes:   $bin_dir/chezmoi apply"
+echo "  3. After applying, you can use 'chezmoi' directly (no path needed)"

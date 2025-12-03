@@ -1,0 +1,42 @@
+# Oh My Zsh configuration
+# This file contains all oh-my-zsh specific settings
+# Uses chezmoi template variables for OS-specific plugins
+
+# Path to your oh-my-zsh installation
+export ZSH=$HOME/.oh-my-zsh
+
+# Custom folder location - needed for plugins to be found
+# Note: Our custom config files are in config/ subdirectory to avoid auto-sourcing
+ZSH_CUSTOM=$HOME/.zsh/custom
+
+# Set name of the theme to load
+# See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
+ZSH_THEME="dave"
+
+# Which plugins would you like to load?
+plugins=(
+  git
+  github
+  colored-man-pages
+  docker
+  docker-compose
+  alias-tips
+  zsh-autosuggestions
+{{- if eq .chezmoi.os "linux" }}
+  apt debian
+{{- end }}
+)
+
+# zsh-syntax-highlighting needs to be the last plugin loaded
+plugins+=(
+  zsh-syntax-highlighting
+)
+
+# Add zsh-completions to fpath (must be before oh-my-zsh.sh is sourced)
+fpath+=($HOME/.zsh/custom/plugins/zsh-completions/src)
+
+# Source oh-my-zsh (this will run compinit automatically)
+source $ZSH/oh-my-zsh.sh
+
+# User configuration
+export EDITOR='vim'

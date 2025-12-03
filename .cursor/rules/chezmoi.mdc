@@ -1,0 +1,308 @@
+---
+description: Chezmoi dotfiles management conventions, file naming, templating, and workflows
+alwaysApply: false
+---
+
+# Chezmoi Dotfiles Management Rules
+
+## Overview
+
+This repository uses [chezmoi](https://www.chezmoi.io/) to manage dotfiles across multiple machines. Chezmoi is a dotfile manager that stores the desired state of configuration files in a source directory and applies them to the destination directory (typically `~`).
+
+## Core Concepts
+
+### Source vs Destination
+
+- **Source Directory**: The repository where chezmoi stores the desired state of your dotfiles. In this repo, it's `~/dotfiles` (configured in `.chezmoi.yaml.tmpl`).
+- **Destination Directory**: Where the actual dotfiles live (typically `~`). Chezmoi applies files from source to destination.
+
+### File Naming Conventions
+
+Chezmoi uses a specific naming scheme in the source directory:
+
+1. **Regular Files**: Files that should be installed to `~/.filename` are named `dot_filename` in the source
+   - Example: `dot_bashrc` → `~/.bashrc`
+   - Example: `dot_zshrc.tmpl` → `~/.zshrc` (after template processing)
+
+2. **Files in Subdirectories**: Use `dot_` prefix for each directory level
+   - Example: `dot_zsh/custom/aliases.zsh` → `~/.zsh/custom/aliases.zsh`
+   - Example: `dot_config/git/config` → `~/.config/git/config`
+
+3. **Private Files**: Files that should be private (mode 0600) use `private_` prefix
+   - Example: `private_dot_ssh/id_rsa` → `~/.ssh/id_rsa` (with 0600 permissions)
+
+4. **Executable Files**: Files that should be executable use `executable_` prefix
+   - Example: `executable_dot_local/bin/script` → `~/.local/bin/script` (with execute bit)
+
+5. **Encrypted Files**: Files encrypted with age or gpg use `encrypted_` prefix
+   - Example: `encrypted_dot_secrets` → `~/.secrets` (decrypted on apply)
+
+6. **Exact Files**: Files that should match exactly (no template processing) use `exact_` prefix
+   - Example: `exact_dot_binary` → `~/.binary` (copied as-is)
+
+7. **Templates**: Files with `.tmpl` extension are processed as Go templates
+   - Example: `dot_gitconfig.tmpl` → `~/.gitconfig` (after template processing)
+   - Templates can use Go `text/template` syntax with sprig functions
+
+### Source State Attributes
+
+Files can have multiple attributes combined:
+- `dot_` - regular file
+- `private_` - private (0600)
+- `executable_` - executable
+- `encrypted_` - encrypted
+- `exact_` - exact copy (no template processing)
+- `.tmpl` - template file
+
+Examples:
+- `dot_gitconfig.tmpl` - regular template file
+- `private_dot_ssh/id_rsa` - private file
+- `executable_dot_local/bin/script.tmpl` - executable template file
+- `encrypted_private_dot_secrets.tmpl` - encrypted private template
+
+## Special Files and Directories
+
+### `.chezmoiignore`
+- Lists files/directories to ignore during `chezmoi apply`
+- Similar to `.gitignore` syntax
+- Example: `README.md`, `.oh-my-zsh/cache/`
+
+### `.chezmoiremove`
+- Lists files to be removed from destination directory
+- One file per line
+- Useful for cleaning up old files
+
+### `.chezmoi.yaml.tmpl` or `.chezmoi.toml.tmpl`
+- Main configuration file (can be a template itself)
+- Defines source directory, data variables, git settings, etc.
+- Format can be YAML or TOML
+
+### `.chezmoidata.<format>` (e.g., `.chezmoidata.yaml`)
+- Machine-specific data files
+- Provides variables for templates
+- Can be version controlled or kept local
+
+### `.chezmoidata/` directory
+- Directory containing data files
+- Files are read before templates are processed
+- Useful for organizing data by machine or category
+
+### `.chezmoitemplates/` directory
+- Reusable template snippets
+- Can be included in other templates using `includeTemplate` function
+- Example: `{{ includeTemplate "common-header" }}`
+
+### `.chezmoiexternal.<format>.tmpl`
+- Defines external files to download
+- Supports archives (tar.gz, zip) and files
+- Can use templates for conditional externals
+- Example: Downloading oh-my-zsh, plugins, themes from GitHub
+
+### `.chezmoiscripts/` directory
+- Scripts that run during chezmoi operations
+- `run_*.sh.tmpl` - run before/after apply
+- `run_onchange_*.sh.tmpl` - run only when file changes
+- Scripts can be templates themselves
+
+## Templating
+
+### Template Syntax
+
+Chezmoi uses Go's `text/template` package with sprig functions:
+
+```bash
+# Basic variable substitution
+{{ .chezmoi.hostname }}
+{{ .chezmoi.os }}
+{{ .chezmoi.username }}
+
+# Conditional blocks
+{{- if .work }}
+# work-specific config
+{{- end }}
+
+{{- if eq .chezmoi.hostname "server" }}
+# server-specific config
+{{- end }}
+
+# Loops
+{{- range .items }}
+{{ . }}
+{{- end }}
+
+# Include other templates
+{{ includeTemplate "header" }}
+```
+
+### Built-in Variables
+
+- `.chezmoi.hostname` - machine hostname
+- `.chezmoi.os` - operating system (linux, darwin, windows, etc.)
+- `.chezmoi.username` - current username
+- `.chezmoi.sourceDir` - source directory path
+- `.chezmoi.sourceFile` - current source file path
+
+### Data Variables
+
+Variables defined in `.chezmoi.yaml.tmpl` or `.chezmoidata.*` files:
+- `.work` - boolean for work machines
+- `.personal` - boolean for personal machines
+- `.server` - boolean for server systems
+- `.rpi` - boolean for Raspberry Pi systems
+- `.docker` - boolean for Docker installation
+- Custom variables as needed
+
+### Template Functions
+
+Chezmoi provides many built-in functions:
+- `onepasswordRead` - read from 1Password
+- `bitwarden` - read from Bitwarden
+- `pass` - read from pass password manager
+- `exec` - execute shell commands
+- `output` - capture command output
+- `promptString` - prompt user for input
+- `includeTemplate` - include template snippets
+- Many more (see chezmoi docs)
+
+## Common Workflows
+
+### Adding a New File
+
+```bash
+# Add existing file
+chezmoi add ~/.newfile
+
+# Add as template
+chezmoi add --template ~/.newfile
+
+# Add as private file
+chezmoi add --private ~/.secretfile
+```
+
+### Editing Files
+
+```bash
+# Edit source file (recommended)
+chezmoi edit ~/.zshrc
+
+# Edit directly in source directory
+vim ~/dotfiles/dot_zshrc.tmpl
+```
+
+### Applying Changes
+
+```bash
+# Preview changes
+chezmoi diff
+
+# Apply changes
+chezmoi apply
+
+# Apply specific file
+chezmoi apply ~/.zshrc
+```
+
+### Managing External Files
+
+External files (like oh-my-zsh, plugins) are defined in `.chezmoiexternal.toml.tmpl`:
+- Use `type = "archive"` for tar.gz/zip files
+- Use `exact = true` to prevent modifications
+- Use `stripComponents = 1` to remove top-level directory
+- Use `refreshPeriod` to control update frequency
+
+### Version Control
+
+```bash
+# Navigate to source directory
+chezmoi cd
+
+# Standard git operations
+git add .
+git commit -m "Update dotfiles"
+git push
+
+# Or use chezmoi git commands
+chezmoi git add .
+chezmoi git commit -m "Update dotfiles"
+chezmoi git push
+```
+
+## Best Practices
+
+1. **Always edit source files, not destination files**
+   - Use `chezmoi edit` or edit files in `~/dotfiles`
+   - Destination files are managed by chezmoi
+
+2. **Use templates for machine-specific differences**
+   - Don't hardcode machine-specific values
+   - Use data variables and conditionals
+
+3. **Keep secrets in password managers**
+   - Use `onepasswordRead`, `bitwarden`, etc.
+   - Don't commit secrets to git
+
+4. **Use `.chezmoiignore` for generated files**
+   - Cache directories, build artifacts, etc.
+   - Example: `.oh-my-zsh/cache/`
+
+5. **Organize modular configurations**
+   - Split large configs into smaller files
+   - Source them from main config file
+   - Example: `dot_zsh/custom/` directory structure
+
+6. **Test changes before committing**
+   - Use `chezmoi diff` to preview
+   - Apply to test machine first if possible
+
+7. **Document custom variables**
+   - Update README.md with variable meanings
+   - Document in `.chezmoi.yaml.tmpl` comments
+
+## File Structure in This Repository
+
+```
+dotfiles/
+├── .chezmoiignore              # Files to ignore
+├── .chezmoiexternal.toml.tmpl  # External file definitions
+├── .chezmoi.yaml.tmpl          # Chezmoi configuration (template)
+├── dot_bashrc.tmpl             # Bash config (template)
+├── dot_gitconfig.tmpl          # Git config (template)
+├── dot_gitignore               # Global gitignore
+├── dot_profile                 # Profile config
+├── dot_p10k.zsh                # Powerlevel10k theme
+├── dot_zshrc.tmpl              # Main zsh config (template)
+├── dot_zsh/
+│   └── custom/                 # Modular zsh configs
+│       ├── aliases.zsh
+│       ├── brew.zsh
+│       ├── functions.zsh
+│       ├── nvm.zsh
+│       ├── oh-my-zsh.zsh
+│       ├── paths.zsh
+│       ├── powerlevel10k.zsh
+│       ├── secrets.zsh.tmpl    # Secrets (template)
+│       └── tools.zsh
+├── install.sh                  # Initial setup script
+└── README.md                   # Documentation
+```
+
+## Machine-Specific Variables
+
+This repository uses the following custom variables (defined in `.chezmoi.yaml.tmpl`):
+
+- `headless` - true if machine has no screen/keyboard
+- `work` - true if work machine
+- `personal` - true if personal machine
+- `server` - true if server system
+- `gameserver` - true if game server
+- `docker` - true if Docker should be installed
+- `rpi` - true if Raspberry Pi
+
+Variables are set based on hostname matching in `.chezmoi.yaml.tmpl`.
+
+## References
+
+- [Chezmoi Documentation](https://www.chezmoi.io/)
+- [User Guide](https://www.chezmoi.io/user-guide/)
+- [Reference](https://www.chezmoi.io/reference/)
+- [Templating Guide](https://www.chezmoi.io/user-guide/templating/)
