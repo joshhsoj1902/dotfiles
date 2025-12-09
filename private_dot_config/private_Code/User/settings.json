@@ -30,6 +30,7 @@
     "enginesv",
     "eval",
     "finalizers",
+    "flipt",
     "Getkube",
     "gocyclo",
     "gomplate",
@@ -90,16 +91,23 @@
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "go.toolsManagement.autoUpdate": true,
   "editor.inlineSuggest.enabled": true,
   "workbench.editorAssociations": {
     "*.ipynb": "jupyter.notebook.ipynb"
   },
+  "files.associations": {
+    ".env*": "dotenv"
+  },
   "github.copilot.enable": {
     "*": true,
     "yaml": false,
     "plaintext": true,
-    "markdown": true
+    "markdown": true,
+    "dotenv": false
   },
   "redhat.telemetry.enabled": false,
   "[python]": {
@@ -204,4 +212,9 @@
   "settingsSync.ignoredSettings": [
 
   ],
+  "diffEditor.ignoreTrimWhitespace": true,
+  "explorer.confirmDelete": false,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "docker.extension.enableComposeLanguageServer": false
 }
