@@ -3,3 +3,5 @@
 .DS_Store
 ci-exec-dev-env-secrets.yaml
 ci-exec-dev-env.yaml
+.cursor/rules/rules
+joshnotes.md
