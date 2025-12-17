@@ -5,6 +5,35 @@ sudo apt install -y htop vim
 brew install htop
 {{ end -}}
 
+# Install yq (YAML processor)
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS: use Homebrew
+if ! command -v yq >/dev/null 2>&1; then
+  brew install yq
+fi
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux: try Homebrew first, then snap, then direct download
+if ! command -v yq >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    brew install yq
+  elif command -v snap >/dev/null 2>&1; then
+    sudo snap install yq
+  else
+    # Fallback: download directly from GitHub
+    ARCH=$(uname -m)
+    case "$ARCH" in
+      x86_64) ARCH="amd64" ;;
+      aarch64|arm64) ARCH="arm64" ;;
+      *) ARCH="amd64" ;; # default
+    esac
+    YQ_VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    curl -L "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${ARCH}" -o /tmp/yq
+    chmod +x /tmp/yq
+    sudo mv /tmp/yq /usr/local/bin/yq
+  fi
+fi
+{{ end -}}
+
 {{ if .server -}}
 sudo apt install -y nfs-common p7zip-full p7zip-rar
 {{ end -}}

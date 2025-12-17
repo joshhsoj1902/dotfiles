@@ -1,0 +1,838 @@
+#!/bin/bash
+
+# Script to copy Cursor rules from multiple sources to project .cursor/rules directories
+# Supports personal rules and external rule sources (like common-ai-config)
+# Note: Files are copied (not symlinked) because Cursor doesn't reliably read symlinked rules
+
+set -e
+
+CONFIG_FILE="$HOME/.cursor-custom/.config.yaml"
+PERSONAL_RULES_DIR="$HOME/.cursor-custom/rules"
+
+# Ensure .cursor-custom directory exists
+mkdir -p "$HOME/.cursor-custom"
+
+# Initialize config file if it doesn't exist
+init_config_file() {
+    if [ ! -f "$CONFIG_FILE" ]; then
+        check_yq
+        cat > "$CONFIG_FILE" <<EOF
+# Cursor Rules Configuration
+# This file manages tracked directories and rule sources
+
+# Rule sources
+# Each source should have:
+#   - path: absolute path to the rules directory
+#   - prefix: prefix to use for copied files (e.g., "global-rules-", "joshhsoj1902-rules-")
+#   - name: name/description for the source (used to track which sources are installed in repos)
+sources:
+  - path: "$HOME/.cursor-custom/rules"
+    prefix: "joshhsoj1902-rules-"
+    name: "Personal Rules"
+
+# Directories where rules should be installed/updated
+# Each repo tracks which specific rules are installed from which sources
+repos: []
+EOF
+        echo "Created default config file at $CONFIG_FILE"
+    fi
+}
+
+# Parse YAML config file (simple parser for our use case)
+# This is a basic YAML parser that handles our specific structure
+parse_config() {
+    local config_file="$1"
+
+    # Check if yq is available (better YAML parsing)
+    if command -v yq >/dev/null 2>&1; then
+        # Use yq for proper YAML parsing
+        echo "yq"
+        return 0
+    fi
+
+    # Fallback to basic parsing (limited functionality)
+    echo "basic"
+}
+
+# Check for yq and warn if not available
+check_yq() {
+    if ! command -v yq >/dev/null 2>&1; then
+        echo "Note: 'yq' is not installed. Basic YAML parsing will be used." >&2
+        echo "      For full functionality, install yq: brew install yq" >&2
+        echo ""
+    fi
+}
+
+# Read repos from config using yq
+get_repos_yq() {
+    local config_file="$1"
+    local index=0
+    while true; do
+        local repo_path=$(yq eval ".repos[$index].path" "$config_file" 2>/dev/null)
+        [ "$repo_path" = "null" ] && break
+
+        # Handle both new format (object with path) and old format (string)
+        if [ "$repo_path" != "null" ] && [ -n "$repo_path" ]; then
+            repo_path="${repo_path//\"/}"
+            repo_path="${repo_path/#\~/$HOME}"
+            echo "$repo_path"
+        else
+            # Old format: just a string
+            repo_path=$(yq eval ".repos[$index]" "$config_file" 2>/dev/null)
+            [ "$repo_path" = "null" ] && break
+            repo_path="${repo_path//\"/}"
+            repo_path="${repo_path/#\~/$HOME}"
+            echo "$repo_path"
+        fi
+        index=$((index + 1))
+    done
+}
+
+# Read sources from config using yq
+get_sources_yq() {
+    local config_file="$1"
+    local index=0
+    while true; do
+        local path=$(yq eval ".sources[$index].path" "$config_file" 2>/dev/null)
+        [ "$path" = "null" ] && break
+
+        local prefix=$(yq eval ".sources[$index].prefix" "$config_file" 2>/dev/null)
+        local name=$(yq eval ".sources[$index].name // \"\"" "$config_file" 2>/dev/null)
+
+        # Expand ~ in path
+        path="${path/#\~/$HOME}"
+        path="${path//\"/}"  # Remove quotes
+
+        echo "$path|$prefix|$name"
+        index=$((index + 1))
+    done
+}
+
+
+# Basic YAML parser fallback (simple, handles our structure)
+get_repos_basic() {
+    local config_file="$1"
+    local in_repos=false
+
+    while IFS= read -r line; do
+        # Remove comments and trim
+        line=$(echo "$line" | sed 's/#.*$//' | xargs)
+        [ -z "$line" ] && continue
+
+        if [[ "$line" =~ ^repos: ]]; then
+            in_repos=true
+            continue
+        fi
+
+        if [[ "$line" =~ ^[a-z_]+: ]] && [ "$in_repos" = true ]; then
+            break
+        fi
+
+        if [ "$in_repos" = true ]; then
+            # Extract repo path (handles both formats)
+            # New format: - path: "path"
+            if [[ "$line" =~ path:[[:space:]]*\"(.*)\" ]] || [[ "$line" =~ path:[[:space:]]*(.*) ]]; then
+                local repo="${BASH_REMATCH[1]}"
+                repo="${repo//\"/}"
+                repo="${repo/#\~/$HOME}"
+                echo "$repo"
+            # Old format: - "path" or - path
+            elif [[ "$line" =~ ^-[[:space:]]*\"(.*)\"$ ]] || [[ "$line" =~ ^-[[:space:]]*(.*)$ ]]; then
+                local repo="${BASH_REMATCH[1]}"
+                repo="${repo//\"/}"
+                repo="${repo/#\~/$HOME}"
+                echo "$repo"
+            fi
+        fi
+    done < "$config_file"
+}
+
+# Get sources using basic parser
+get_sources_basic() {
+    local config_file="$1"
+    local in_sources=false
+    local current_path=""
+    local current_prefix=""
+    local current_name=""
+    local indent_level=0
+
+    while IFS= read -r line; do
+        # Remove comments and trim
+        line=$(echo "$line" | sed 's/#.*$//')
+        local original_line="$line"
+        line=$(echo "$line" | xargs)
+        [ -z "$line" ] && continue
+
+        if [[ "$line" =~ ^sources: ]]; then
+            in_sources=true
+            continue
+        fi
+
+        if [[ "$line" =~ ^[a-z_]+: ]] && [ "$in_sources" = true ] && [[ ! "$line" =~ ^[[:space:]]*- ]]; then
+            # New top-level key, we're done with sources
+            break
+        fi
+
+        if [ "$in_sources" = true ]; then
+            # Check for path, prefix, or name fields
+            if [[ "$line" =~ path:[[:space:]]*\"(.*)\" ]] || [[ "$line" =~ path:[[:space:]]*(.*) ]]; then
+                current_path="${BASH_REMATCH[1]}"
+                current_path="${current_path//\"/}"
+                current_path="${current_path/#\~/$HOME}"
+            elif [[ "$line" =~ prefix:[[:space:]]*\"(.*)\" ]] || [[ "$line" =~ prefix:[[:space:]]*(.*) ]]; then
+                current_prefix="${BASH_REMATCH[1]}"
+                current_prefix="${current_prefix//\"/}"
+            elif [[ "$line" =~ name:[[:space:]]*\"(.*)\" ]] || [[ "$line" =~ name:[[:space:]]*(.*) ]]; then
+                current_name="${BASH_REMATCH[1]}"
+                current_name="${current_name//\"/}"
+            fi
+
+            # If we hit a new item (starts with -) and we have data, output it
+            if [[ "$line" =~ ^-[[:space:]]*$ ]] || ([[ "$line" =~ ^-[[:space:]]*path: ]] && [ -n "$current_path" ] && [ -n "$current_prefix" ]); then
+                if [ -n "$current_path" ] && [ -n "$current_prefix" ]; then
+                    echo "$current_path|$current_prefix|$current_name"
+                    current_path=""
+                    current_prefix=""
+                    current_name=""
+                fi
+            fi
+        fi
+    done < "$config_file"
+
+    # Output last item if exists
+    if [ -n "$current_path" ] && [ -n "$current_prefix" ]; then
+        echo "$current_path|$current_prefix|$current_name"
+    fi
+}
+
+# Function to copy rules from a source to target directory
+copy_rules_from_source() {
+    local source_dir="$1"
+    local prefix="$2"
+    local source_name="$3"
+    local target_dir="$4"
+
+    # Validate source directory
+    if [ ! -d "$source_dir" ]; then
+        echo "  Warning: Source directory not found: $source_dir" >&2
+        return 1
+    fi
+
+    # Find all .mdc files in the source directory and subdirectories
+    local RULE_FILES=()
+    while IFS= read -r -d '' file; do
+        RULE_FILES+=("$file")
+    done < <(find "$source_dir" -type f -name "*.mdc" -print0 2>/dev/null)
+
+    if [ ${#RULE_FILES[@]} -eq 0 ]; then
+        echo "  No .mdc files found in $source_dir"
+        return 0
+    fi
+
+    local files_copied=0
+
+    # Copy each rule file
+    for RULE_FILE in "${RULE_FILES[@]}"; do
+        local RULE_FILENAME="$(basename "$RULE_FILE")"
+        local TARGET_FILENAME="${prefix}${RULE_FILENAME}"
+        local TARGET_PATH="$target_dir/$TARGET_FILENAME"
+
+        # Check if file needs updating
+        if [ -f "$TARGET_PATH" ]; then
+            if cmp -s "$RULE_FILE" "$TARGET_PATH" 2>/dev/null; then
+                # File is up to date, skip
+                continue
+            else
+                # File differs, copy it
+                cp "$RULE_FILE" "$TARGET_PATH" 2>/dev/null && files_copied=$((files_copied + 1))
+            fi
+        else
+            # New file, copy it
+            cp "$RULE_FILE" "$TARGET_PATH" 2>/dev/null && files_copied=$((files_copied + 1))
+        fi
+    done
+
+    if [ $files_copied -gt 0 ]; then
+        echo "  Copied $files_copied file(s) from $source_name"
+    fi
+
+    return 0
+}
+
+# Function to process a single directory
+process_directory() {
+    local TARGET_DIR="$1"
+
+    echo ""
+    echo "Processing directory: $TARGET_DIR"
+    echo "----------------------------------------"
+
+    # Expand ~ and resolve to absolute path
+    TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
+    local RESOLVED_PATH="$(cd "$TARGET_DIR" 2>/dev/null && pwd)"
+
+    # Validate that the path exists and is a directory
+    if [ -z "$RESOLVED_PATH" ] || [ ! -d "$RESOLVED_PATH" ]; then
+        echo "Error: Path does not exist or is not a directory: $TARGET_DIR" >&2
+        return 1
+    fi
+
+    TARGET_DIR="$RESOLVED_PATH"
+
+    # Create .cursor/rules directory if it doesn't exist
+    local CURSOR_RULES_TARGET_DIR="$TARGET_DIR/.cursor/rules"
+    if [ ! -d "$CURSOR_RULES_TARGET_DIR" ]; then
+        echo "Creating directory: $CURSOR_RULES_TARGET_DIR"
+        mkdir -p "$CURSOR_RULES_TARGET_DIR"
+    fi
+
+    # Determine parser type
+    local parser=$(parse_config "$CONFIG_FILE")
+
+    # Get sources to install for this repo
+    local sources_to_install=()
+    if [ "$parser" = "yq" ]; then
+        # Check if repo has specific sources configured
+        local repo_index=0
+        while true; do
+            local repo_path=$(yq eval ".repos[$repo_index].path" "$CONFIG_FILE" 2>/dev/null)
+            [ "$repo_path" = "null" ] && break
+            repo_path="${repo_path/#\~/$HOME}"
+            repo_path="${repo_path//\"/}"
+
+            if [ "$repo_path" = "$TARGET_DIR" ]; then
+                # Found the repo, check for sources
+                local source_index=0
+                while true; do
+                    local source_name=$(yq eval ".repos[$repo_index].sources[$source_index]" "$CONFIG_FILE" 2>/dev/null)
+                    [ "$source_name" = "null" ] && break
+                    source_name="${source_name//\"/}"
+                    [ -n "$source_name" ] && sources_to_install+=("$source_name")
+                    source_index=$((source_index + 1))
+                done
+                break
+            fi
+            repo_index=$((repo_index + 1))
+        done
+    fi
+
+    # If no specific sources configured, install all sources
+    local all_sources=()
+    if [ "$parser" = "yq" ]; then
+        while IFS='|' read -r source_path prefix source_name; do
+            [ -z "$source_path" ] && continue
+            all_sources+=("$source_path|$prefix|$source_name")
+        done < <(get_sources_yq "$CONFIG_FILE")
+    else
+        while IFS='|' read -r source_path prefix source_name; do
+            [ -z "$source_path" ] && continue
+            all_sources+=("$source_path|$prefix|$source_name")
+        done < <(get_sources_basic "$CONFIG_FILE")
+    fi
+
+    # Track which rules we're installing/updating
+    local rules_to_track=()
+    local files_installed=()
+    local files_updated=()
+    local files_skipped=()
+
+    # Copy rules from sources
+    local total_files=0
+    for source_line in "${all_sources[@]}"; do
+        IFS='|' read -r source_path prefix source_name <<< "$source_line"
+        [ -z "$source_path" ] && continue
+
+        # Find all .mdc files in the source directory
+        local RULE_FILES=()
+        while IFS= read -r -d '' file; do
+            RULE_FILES+=("$file")
+        done < <(find "$source_path" -type f -name "*.mdc" -print0 2>/dev/null)
+
+        # Copy each rule file
+        for RULE_FILE in "${RULE_FILES[@]}"; do
+            local RULE_FILENAME="$(basename "$RULE_FILE")"
+            local TARGET_FILENAME="${prefix}${RULE_FILENAME}"
+            local TARGET_PATH="$CURSOR_RULES_TARGET_DIR/$TARGET_FILENAME"
+
+            # Check if this rule should be installed (if repo has specific rules tracked)
+            if [ ${#installed_rules[@]} -gt 0 ]; then
+                local should_install=false
+                for installed_rule in "${installed_rules[@]}"; do
+                    IFS='|' read -r tracked_file tracked_source tracked_source_file <<< "$installed_rule"
+                    # Match by target filename OR by source name + source file
+                    if [ "$tracked_file" = "$TARGET_FILENAME" ] || ([ "$tracked_source" = "$source_name" ] && [ "$tracked_source_file" = "$RULE_FILENAME" ]); then
+                        should_install=true
+                        break
+                    fi
+                done
+                if [ "$should_install" = false ]; then
+                    files_skipped+=("$TARGET_FILENAME")
+                    continue
+                fi
+            fi
+
+            # Copy the file
+            if [ -f "$TARGET_PATH" ]; then
+                if ! cmp -s "$RULE_FILE" "$TARGET_PATH" 2>/dev/null; then
+                    if cp "$RULE_FILE" "$TARGET_PATH" 2>/dev/null; then
+                        total_files=$((total_files + 1))
+                        files_updated+=("$TARGET_FILENAME")
+                    fi
+                else
+                    files_skipped+=("$TARGET_FILENAME")
+                fi
+            else
+                if cp "$RULE_FILE" "$TARGET_PATH" 2>/dev/null; then
+                    total_files=$((total_files + 1))
+                    files_installed+=("$TARGET_FILENAME")
+                fi
+            fi
+
+            # Track this rule
+            rules_to_track+=("$TARGET_FILENAME|$source_name|$RULE_FILENAME")
+        done
+    done
+
+    # Print summary of what was installed/updated
+    if [ ${#files_installed[@]} -gt 0 ] || [ ${#files_updated[@]} -gt 0 ]; then
+        if [ ${#files_installed[@]} -gt 0 ]; then
+            echo "  Installed ${#files_installed[@]} rule(s):"
+            for file in "${files_installed[@]}"; do
+                echo "    + $file"
+            done
+        fi
+        if [ ${#files_updated[@]} -gt 0 ]; then
+            echo "  Updated ${#files_updated[@]} rule(s):"
+            for file in "${files_updated[@]}"; do
+                echo "    ~ $file"
+            done
+        fi
+    else
+        echo "  No rules to install or update (all up to date)"
+    fi
+
+    # Update the config with installed rules
+    if [ "$parser" = "yq" ] && [ ${#rules_to_track[@]} -gt 0 ]; then
+        if [ $repo_index -lt 0 ]; then
+            # Add new repo
+            yq eval ".repos += [{\"path\": \"$TARGET_DIR\"}]" -i "$CONFIG_FILE" 2>/dev/null
+            repo_index=$(yq eval '.repos | length - 1' "$CONFIG_FILE" 2>/dev/null)
+        fi
+
+        # Clear existing rules and add new ones
+        yq eval "del(.repos[$repo_index].rules)" -i "$CONFIG_FILE" 2>/dev/null
+        for rule_info in "${rules_to_track[@]}"; do
+            IFS='|' read -r target_file source_name source_file <<< "$rule_info"
+            yq eval ".repos[$repo_index].rules += [{\"file\": \"$target_file\", \"source\": \"$source_name\", \"source_file\": \"$source_file\"}]" -i "$CONFIG_FILE" 2>/dev/null
+        done
+    fi
+
+    # Clean up rules that are no longer tracked in config
+    if [ ${#installed_rules[@]} -gt 0 ] && [ -d "$CURSOR_RULES_TARGET_DIR" ]; then
+        # Build list of tracked files
+        local tracked_files=()
+        for installed_rule in "${installed_rules[@]}"; do
+            IFS='|' read -r tracked_file tracked_source tracked_source_file <<< "$installed_rule"
+            tracked_files+=("$tracked_file")
+        done
+
+        # Remove files that are not in the tracked list but match our prefixes
+        for rule_file in "$CURSOR_RULES_TARGET_DIR"/*.mdc; do
+            [ ! -f "$rule_file" ] && continue
+            local filename=$(basename "$rule_file")
+
+            # Check if this is a managed file (has one of our prefixes)
+            local is_managed=false
+            for source_line in "${all_sources[@]}"; do
+                IFS='|' read -r source_path prefix source_name <<< "$source_line"
+                if [[ "$filename" =~ ^${prefix} ]]; then
+                    is_managed=true
+                    break
+                fi
+            done
+
+            if [ "$is_managed" = true ]; then
+                # Check if it's in the tracked list
+                local should_keep=false
+                for tracked_file in "${tracked_files[@]}"; do
+                    if [ "$tracked_file" = "$filename" ]; then
+                        should_keep=true
+                        break
+                    fi
+                done
+
+                if [ "$should_keep" = false ]; then
+                    echo "  Removing orphaned rule: $filename"
+                    rm -f "$rule_file"
+                fi
+            fi
+        done
+    fi
+
+    # Create/update README for each source that has installed rules
+    local listed_sources=()
+    for rule_info in "${rules_to_track[@]}"; do
+        IFS='|' read -r target_file source_name source_file <<< "$rule_info"
+
+        # Check if we've already created a README for this source
+        local already_listed=false
+        for listed in "${listed_sources[@]}"; do
+            if [ "$listed" = "$source_name" ]; then
+                already_listed=true
+                break
+            fi
+        done
+        [ "$already_listed" = true ] && continue
+
+        listed_sources+=("$source_name")
+
+        # Find the source info for this source name
+        local source_path=""
+        local prefix=""
+        for source_line in "${all_sources[@]}"; do
+            IFS='|' read -r src_path src_prefix src_name <<< "$source_line"
+            if [ "$src_name" = "$source_name" ]; then
+                source_path="$src_path"
+                prefix="$src_prefix"
+                break
+            fi
+        done
+
+        if [ -n "$prefix" ] && [ -n "$source_path" ]; then
+            # Create README with prefix in filename
+            local README_PATH="$CURSOR_RULES_TARGET_DIR/${prefix}readme.md"
+            local README_CONTENT="# $source_name
+
+The files prefixed with \`$prefix\` in this directory are automatically copied from:
+
+\`$source_path\`
+
+To update these files, run:
+- \`apply-personal-rules\` - Interactive menu
+- \`apply-personal-rules --all\` - Update all tracked directories
+"
+
+            if [ -f "$README_PATH" ] || [ ! -f "$README_PATH" ]; then
+                echo "$README_CONTENT" > "$README_PATH"
+            fi
+        fi
+    done
+
+    return 0
+}
+
+# Function to prompt user for which rules to install
+# Returns "all" if all should be installed, or empty if user cancelled
+prompt_rule_selection() {
+    local RESOLVED_PATH="$1"
+    local parser=$(parse_config "$CONFIG_FILE")
+
+    # Get all available sources and their rules
+    local all_sources_info=()
+    if [ "$parser" = "yq" ]; then
+        while IFS='|' read -r source_path prefix source_name; do
+            [ -z "$source_path" ] && continue
+            all_sources_info+=("$source_path|$prefix|$source_name")
+        done < <(get_sources_yq "$CONFIG_FILE")
+    else
+        while IFS='|' read -r source_path prefix source_name; do
+            [ -z "$source_path" ] && continue
+            all_sources_info+=("$source_path|$prefix|$source_name")
+        done < <(get_sources_basic "$CONFIG_FILE")
+    fi
+
+    if [ ${#all_sources_info[@]} -eq 0 ]; then
+        echo "all"
+        return 0
+    fi
+
+    echo ""
+    echo "Which rules would you like to install in $RESOLVED_PATH?"
+    echo "(Leave empty to install all rules from all sources)"
+    echo ""
+
+    local option_num=1
+    local source_rules=()  # Format: "option_num|source_name|source_file|target_file"
+
+    for source_info in "${all_sources_info[@]}"; do
+        IFS='|' read -r source_path prefix source_name <<< "$source_info"
+
+        # Find all .mdc files in this source
+        local RULE_FILES=()
+        while IFS= read -r -d '' file; do
+            RULE_FILES+=("$file")
+        done < <(find "$source_path" -type f -name "*.mdc" -print0 2>/dev/null)
+
+        if [ ${#RULE_FILES[@]} -gt 0 ]; then
+            echo "From $source_name:"
+            for RULE_FILE in "${RULE_FILES[@]}"; do
+                local RULE_FILENAME="$(basename "$RULE_FILE")"
+                local TARGET_FILENAME="${prefix}${RULE_FILENAME}"
+                echo "  $option_num) $TARGET_FILENAME"
+                source_rules+=("$option_num|$source_name|$RULE_FILENAME|$TARGET_FILENAME")
+                option_num=$((option_num + 1))
+            done
+            echo ""
+        fi
+    done
+
+    echo "  a) All rules from all sources"
+    echo ""
+    read -p "Enter choice(s): " USER_CHOICE
+
+    # Parse user choice
+    if [ -z "$USER_CHOICE" ] || [ "$USER_CHOICE" = "a" ] || [ "$USER_CHOICE" = "A" ]; then
+        echo "all"
+    else
+        # Parse space-separated numbers and return selected rules
+        local selected_rules=()
+        for choice in $USER_CHOICE; do
+            if [[ "$choice" =~ ^[0-9]+$ ]]; then
+                for rule_info in "${source_rules[@]}"; do
+                    IFS='|' read -r opt_num src_name src_file tgt_file <<< "$rule_info"
+                    if [ "$opt_num" = "$choice" ]; then
+                        echo "$tgt_file|$src_name|$src_file"
+                        break
+                    fi
+                done
+            fi
+        done
+    fi
+}
+
+# Function to add a directory to config
+# Rules will be tracked automatically when process_directory runs
+add_directory_to_config() {
+    local TARGET_DIR="$1"
+    TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
+    local RESOLVED_PATH="$(cd "$TARGET_DIR" 2>/dev/null && pwd)"
+
+    if [ -z "$RESOLVED_PATH" ] || [ ! -d "$RESOLVED_PATH" ]; then
+        echo "Error: Path does not exist or is not a directory: $TARGET_DIR" >&2
+        return 1
+    fi
+
+    local parser=$(parse_config "$CONFIG_FILE")
+
+    if [ "$parser" = "yq" ]; then
+        # Check if repo already exists
+        local repo_index=0
+        local exists=false
+        while true; do
+            local repo_path=$(yq eval ".repos[$repo_index].path" "$CONFIG_FILE" 2>/dev/null)
+            [ "$repo_path" = "null" ] && break
+            repo_path="${repo_path//\"/}"
+            repo_path="${repo_path/#\~/$HOME}"
+
+            if [ "$repo_path" = "$RESOLVED_PATH" ]; then
+                exists=true
+                break
+            fi
+            repo_index=$((repo_index + 1))
+        done
+
+        if [ "$exists" = false ]; then
+            # Add new repo (rules will be added when process_directory runs)
+            yq eval ".repos += [{\"path\": \"$RESOLVED_PATH\"}]" -i "$CONFIG_FILE" 2>/dev/null
+            echo "Added $RESOLVED_PATH to config"
+        else
+            echo "$RESOLVED_PATH is already in config"
+        fi
+    else
+        # Basic fallback: just add path
+        local exists=false
+        while IFS= read -r repo; do
+            if [ "$repo" = "$RESOLVED_PATH" ]; then
+                exists=true
+                break
+            fi
+        done < <(get_repos_basic "$CONFIG_FILE")
+
+        if [ "$exists" = false ]; then
+            # Find the repos: line and add after it
+            local temp_file=$(mktemp)
+            local in_repos=false
+            local added=false
+
+            while IFS= read -r line; do
+                echo "$line" >> "$temp_file"
+
+                if [[ "$line" =~ ^repos: ]]; then
+                    in_repos=true
+                elif [[ "$line" =~ ^[a-z_]+: ]] && [ "$in_repos" = true ] && [ "$added" = false ]; then
+                    # We've moved past repos section, add it before this line
+                    echo "  - path: \"$RESOLVED_PATH\"" >> "$temp_file"
+                    added=true
+                    in_repos=false
+                elif [ "$in_repos" = true ] && [[ "$line" =~ ^[[:space:]]*$ ]] && [ "$added" = false ]; then
+                    # Empty line in repos section, add entry
+                    echo "  - path: \"$RESOLVED_PATH\"" >> "$temp_file"
+                    added=true
+                fi
+            done < "$CONFIG_FILE"
+
+            # If we never added it, append to end
+            if [ "$added" = false ]; then
+                echo "  - path: \"$RESOLVED_PATH\"" >> "$temp_file"
+            fi
+
+            mv "$temp_file" "$CONFIG_FILE"
+            echo "Added $RESOLVED_PATH to config (basic mode)"
+        else
+            echo "$RESOLVED_PATH is already in config"
+        fi
+    fi
+}
+
+# Function to get repos from config
+get_repos() {
+    local parser=$(parse_config "$CONFIG_FILE")
+
+    if [ "$parser" = "yq" ]; then
+        get_repos_yq "$CONFIG_FILE"
+    else
+        get_repos_basic "$CONFIG_FILE"
+    fi
+}
+
+# Parse command line arguments
+MODE="default"
+TARGET_ARG=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --all)
+            MODE="all"
+            shift
+            ;;
+        --add)
+            MODE="add"
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: apply-personal-rules [OPTIONS] [DIRECTORY]"
+            echo ""
+            echo "Copy Cursor rules from multiple sources to project directories."
+            echo ""
+            echo "Options:"
+            echo "  --all              Update all directories in config file"
+            echo "  --add              Add current directory to config and install rules"
+            echo "  --help, -h         Show this help message"
+            echo ""
+            echo "If no options or directory are provided, shows interactive menu."
+            echo "If a directory path is provided, installs rules to that directory."
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            echo "Use --help for usage information" >&2
+            exit 1
+            ;;
+        *)
+            if [ -z "$TARGET_ARG" ]; then
+                TARGET_ARG="$1"
+            else
+                echo "Error: Multiple directory arguments provided" >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Initialize config file if needed
+init_config_file
+
+# Main script logic
+echo "Cursor Rules Installer"
+echo "======================"
+echo ""
+
+# Determine what to do based on mode and arguments
+case "$MODE" in
+    all)
+        # Update all directories in config
+        repos=()
+        while IFS= read -r repo; do
+            [ -n "$repo" ] && repos+=("$repo")
+        done < <(get_repos)
+
+        if [ ${#repos[@]} -eq 0 ]; then
+            echo "No directories found in config file." >&2
+            echo "Use 'apply-personal-rules --add' to add the current directory first." >&2
+            exit 1
+        fi
+
+        echo "Updating all directories in config file..."
+        for repo in "${repos[@]}"; do
+            process_directory "$repo"
+        done
+        ;;
+    add)
+        # Add current directory to config and install rules
+        CURRENT_DIR="$(pwd)"
+        if [ -n "$TARGET_ARG" ]; then
+            CURRENT_DIR="$TARGET_ARG"
+        fi
+        add_directory_to_config "$CURRENT_DIR"
+        process_directory "$CURRENT_DIR"
+        ;;
+    default)
+        # Default: prompt user if no arguments provided
+        if [ -z "$TARGET_ARG" ]; then
+            # Interactive mode: prompt user for action
+            echo "What would you like to do?"
+            echo "  1) Install/update rules in current directory ($(pwd))"
+
+            # Get repos count
+            repos=()
+            while IFS= read -r repo; do
+                [ -n "$repo" ] && repos+=("$repo")
+            done < <(get_repos)
+
+            repo_count=${#repos[@]}
+            if [ "$repo_count" -gt 0 ]; then
+                echo "  2) Update all directories in config file ($repo_count directory(ies))"
+            else
+                echo "  2) Update all directories in config file (no directories tracked)"
+            fi
+
+            read -p "Enter choice (1-2): " USER_CHOICE
+
+            case "$USER_CHOICE" in
+                1)
+                    # Install/update current directory
+                    CURRENT_DIR="$(pwd)"
+                    add_directory_to_config "$CURRENT_DIR"
+                    process_directory "$CURRENT_DIR"
+                    ;;
+                2)
+                    # Update all directories in config
+                    if [ ${#repos[@]} -eq 0 ]; then
+                        echo "No directories found in config file." >&2
+                        echo "Installing rules to current directory instead..." >&2
+                        CURRENT_DIR="$(pwd)"
+                        add_directory_to_config "$CURRENT_DIR"
+                        process_directory "$CURRENT_DIR"
+                    else
+                        echo "Updating all directories in config file..."
+                        for repo in "${repos[@]}"; do
+                            process_directory "$repo"
+                        done
+                    fi
+                    ;;
+                *)
+                    echo "Invalid choice. Exiting."
+                    exit 1
+                    ;;
+            esac
+        else
+            # Directory provided as argument: install to that directory
+            add_directory_to_config "$TARGET_ARG"
+            process_directory "$TARGET_ARG"
+        fi
+        ;;
+esac
+
+echo ""
+echo "Done!"

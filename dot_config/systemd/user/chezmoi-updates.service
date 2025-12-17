@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for chezmoi dotfiles updates
+Documentation=https://www.chezmoi.io/
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/chezmoi-check-updates
+WorkingDirectory=%h/dotfiles
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+StandardOutput=journal
+StandardError=journal
+

@@ -95,3 +95,9 @@ fi
 if [[ -f ~/.zsh/custom/config/nvm.zsh ]]; then
   source ~/.zsh/custom/config/nvm.zsh
 fi
+
+# Chezmoi updates notification (after initialization to avoid instant prompt conflicts)
+# Use precmd hook to display once per session after prompt is ready
+if [[ -f ~/.zsh/custom/config/chezmoi-notify.zsh ]]; then
+  source ~/.zsh/custom/config/chezmoi-notify.zsh
+fi

@@ -1,0 +1,16 @@
+[Unit]
+Description=Daily check for chezmoi dotfiles updates
+Documentation=https://www.chezmoi.io/
+Requires=chezmoi-updates.service
+
+[Timer]
+OnCalendar=daily
+# Run at 2:00 AM
+OnCalendar=*-*-* 02:00:00
+# Add random delay of 0-30 minutes to avoid system load spikes
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

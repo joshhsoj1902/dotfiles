@@ -1,0 +1,49 @@
+---
+alwaysApply: true
+description: "Debugging notes"
+---
+# Debugging Notes
+
+When actively debugging, create a markdown file in the `joshhsoj1902-local/debugging` directory to keep notes about the progress and debugging process.
+
+Update these files regularly. Reference back to theses files regularly.
+
+## Directory Location
+
+The `joshhsoj1902-local/debugging` directory is located at the root of the repository:
+
+## Usage
+
+1. **Create the directory if it doesn't exist**: If the `joshhsoj1902-local/debugging` folder doesn't exist, create it before adding notes.
+
+2. **Create a markdown file**: When actively debugging, create a markdown file (e.g., `debug-session-YYYY-MM-DD.md` or `debug-issue-name.md`) in this directory.
+
+3. **Document your progress**: Use the markdown file to track:
+   - What you're debugging
+   - Steps you've taken
+   - Findings and observations
+   - Commands you've run
+   - Code snippets or configurations that are relevant
+   - Any other useful information for the debugging session
+
+## Important Notes
+
+- **Not committed to git**: The `joshhsoj1902-local` directory is excluded from git (via `.gitignore`), so you can freely put anything useful in it without worrying about committing sensitive information or temporary notes.
+- **Free-form content**: Since these files are not tracked, feel free to include:
+  - Temporary code snippets
+  - Debug output
+  - Personal notes
+  - Test configurations
+  - Any other debugging artifacts
+
+## Example
+
+```bash
+# Create the directory if needed
+mkdir -p /Users/joshbryans/dev/joshhsoj1902/joshhsoj1902-local/debugging
+
+# Create a debugging notes file
+touch /Users/joshbryans/dev/joshhsoj1902/joshhsoj1902-local/debugging/debug-2025-01-20.md
+```
+
+Then document your debugging session in the markdown file.

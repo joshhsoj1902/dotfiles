@@ -1,0 +1,53 @@
+---
+alwaysApply: true
+description: "Context notes for AI agents"
+---
+# Context Notes
+
+AI agents are encouraged to create markdown files in the `joshhsoj1902-local/context-notes` directory to store useful context for future AI agents.
+
+Update these files regularly. Reference back to theses files regularly.
+
+## Directory Location
+
+The `joshhsoj1902-local/context-notes` directory is located at the root of the repository.
+
+## Usage
+
+1. **Create the directory if it doesn't exist**: If the `joshhsoj1902-local/context-notes` folder doesn't exist, create it before adding notes.
+
+2. **Create a markdown file**: When you discover or create useful context that would help future AI agents, create a markdown file (e.g., `project-structure.md`, `api-endpoints.md`, `common-patterns.md`, or `YYYY-MM-DD-topic.md`) in this directory.
+
+3. **Document useful context**: Use the markdown file to document:
+   - Project structure and organization
+   - Important patterns and conventions
+   - API endpoints and their usage
+   - Configuration details
+   - Common gotchas or important considerations
+   - Architecture decisions
+   - Any other information that would help future AI agents understand the codebase
+
+4. **Maintain and update files**: **It is important that these files are maintained.** Anytime an agent changes the validity of information in these context files, they should update them accordingly. This ensures that the context remains accurate and useful for future AI agents.
+
+## Important Notes
+
+- **Not committed to git**: The `joshhsoj1902-local` directory is excluded from git (via `.gitignore`), so you can freely put anything useful in it without worrying about committing sensitive information or temporary notes.
+- **Maintenance is critical**: These files are meant to help future AI agents, so keeping them up-to-date is essential. When you make changes that invalidate information in context files, update those files.
+- **Free-form content**: Since these files are not tracked, feel free to include:
+  - Code snippets
+  - Configuration examples
+  - Architecture diagrams (in markdown format)
+  - Links to relevant documentation
+  - Any other context that would be helpful
+
+## Example
+
+```bash
+# Create the directory if needed
+mkdir -p /Users/joshbryans/dev/joshhsoj1902/joshhsoj1902-local/context-notes
+
+# Create a context notes file
+touch /Users/joshbryans/dev/joshhsoj1902/joshhsoj1902-local/context-notes/project-structure.md
+```
+
+Then document useful context in the markdown file. When you later make changes that affect this context, remember to update the file.

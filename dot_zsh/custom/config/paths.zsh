@@ -10,6 +10,13 @@ pathappend "$GOROOT/bin"
 # RVM (Ruby Version Manager)
 pathappend "$HOME/.rvm/bin"
 
+# pnpm (standalone installation)
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
 # Homebrew paths (HOMEBREW_PREFIX is set in dot_zshrc.tmpl)
 pathinsert "$HOMEBREW_PREFIX/bin"
 pathinsert "$HOMEBREW_PREFIX/sbin"
@@ -32,3 +39,6 @@ pathinsert "$HOME/bin/docker"
 pathinsert "$HOME/bin/packer"
 pathinsert "$HOME/bin/terraform"
 pathinsert "$HOME/bin/google-cloud-sdk/bin"
+
+# LM Studio CLI
+pathappend "$HOME/.lmstudio/bin"

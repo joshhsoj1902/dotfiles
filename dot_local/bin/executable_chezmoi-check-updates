@@ -1,0 +1,62 @@
+#!/bin/sh
+# Background script to check for dotfiles updates and chezmoi changes
+# This script is run daily by launchd (macOS) or systemd (Linux)
+
+# Don't use set -e as we need to handle non-zero exit codes from git/chezmoi
+set +e
+
+# Get the dotfiles directory (default to ~/dotfiles)
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+STATUS_FILE="${XDG_CACHE_HOME:-$HOME/.cache}/chezmoi-updates-available"
+
+# Ensure cache directory exists
+mkdir -p "$(dirname "$STATUS_FILE")"
+
+# Change to dotfiles directory
+cd "$DOTFILES_DIR" || exit 1
+
+# Pull latest changes (silently, ignore errors if network is down)
+if ! git pull --quiet --ff-only 2>/dev/null; then
+    # If pull fails (network issue, etc.), exit silently
+    # Don't spam errors for transient network issues
+    exit 0
+fi
+
+# Check if there are any pending chezmoi changes
+# Use chezmoi diff and check if output is non-empty
+if command -v chezmoi >/dev/null 2>&1; then
+    # Try to run chezmoi diff, filtering out template errors
+    # Use --no-tty to avoid interactive prompts
+    DIFF_OUTPUT=$(chezmoi diff --no-tty 2>&1 | grep -vE "^(\[ERROR\].*|chezmoi:.*template.*1password|chezmoi:.*onepassword)" || true)
+
+    # Also check if there are uncommitted changes in the source directory
+    # that would result in differences when applied
+    if [ -n "$DIFF_OUTPUT" ] && echo "$DIFF_OUTPUT" | grep -qE "^(diff|---|\+\+\+|@@|\./|\.zsh|\.config|\.Library|\.local|\.git)" 2>/dev/null; then
+        # There are pending changes - create status file
+        touch "$STATUS_FILE"
+    else
+        # Check if there are uncommitted changes in source that might cause diffs
+        # This catches cases where chezmoi diff fails but there are source changes
+        # git diff --quiet returns 0 if no changes, 1 if there are changes
+        GIT_WORKTREE_CLEAN=0
+        GIT_INDEX_CLEAN=0
+        git -C "$DOTFILES_DIR" diff --quiet --exit-code 2>/dev/null
+        GIT_WORKTREE_CLEAN=$?
+        git -C "$DOTFILES_DIR" diff --cached --quiet --exit-code 2>/dev/null
+        GIT_INDEX_CLEAN=$?
+
+        if [ "$GIT_WORKTREE_CLEAN" -eq 0 ] && [ "$GIT_INDEX_CLEAN" -eq 0 ]; then
+            # No uncommitted changes in source - remove status file if it exists
+            [ -f "$STATUS_FILE" ] && rm -f "$STATUS_FILE"
+        else
+            # There are uncommitted changes in source - likely means there are diffs
+            touch "$STATUS_FILE"
+        fi
+    fi
+else
+    # chezmoi not found - remove status file to avoid false positives
+    [ -f "$STATUS_FILE" ] && rm -f "$STATUS_FILE"
+fi
+
+exit 0
+

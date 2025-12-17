@@ -4,4 +4,7 @@
 ci-exec-dev-env-secrets.yaml
 ci-exec-dev-env.yaml
 .cursor/rules/rules
+.cursor/rules/joshhsoj1902-rules*
+.cursor/rules/global-rules*
 joshnotes.md
+joshhsoj1902-local
